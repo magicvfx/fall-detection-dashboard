@@ -4,30 +4,95 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fall Detection Dashboard</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=IzaSyC-7Z9ZeLKoCIn5eV6vsSIH_bKMAq80l20"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4; }
+    header { background: #222; color: #fff; padding: 10px 20px; text-align: center; }
+    h1 { margin: 0; font-size: 24px; }
+    #map { height: 400px; width: 100%; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    th, td { padding: 8px 12px; border: 1px solid #ccc; text-align: center; }
+    th { background: #222; color: #fff; }
+    tr:nth-child(even) { background: #eaeaea; }
+  </style>
 </head>
 <body>
-  <h1>🚨 Fall Detection Dashboard</h1>
 
-  <div class="card">
-    <h2>Status</h2>
-    <p><b>Battery:</b> <span id="battery">Loading...</span></p>
-    <p><b>MPU:</b> <span id="mpu">Loading...</span></p>
-    <p><b>GPS:</b> <span id="gps">Loading...</span></p>
-  </div>
+<header>
+  <h1>Fall Detection Dashboard</h1>
+</header>
 
-  <div class="card alert">
-    <h2>Alerts</h2>
-    <ul id="alerts"></ul>
-  </div>
+<div id="map"></div>
 
-  <div class="card">
-    <h2>Location</h2>
-    <iframe id="map" width="100%" height="300" style="border:0;" loading="lazy"></iframe>
-  </div>
+<table id="alertsTable">
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Latitude</th>
+      <th>Longitude</th>
+      <th>Battery (V)</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-  <script src="script.js"></script>
+<script>
+  // ===== Firebase Configuration =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyCoSb7TW3Wgz5zzWVajpk2l8DqFKYEK-3o",
+    databaseURL: "https://fall-dectation-default-rtdb.firebaseio.com/"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // ===== Initialize Google Map =====
+  const map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 10.0, lng: 76.0 },
+    zoom: 12
+  });
+
+  const markers = [];
+
+  // ===== Function to update table and map =====
+  function updateAlerts(alerts) {
+    const tbody = document.querySelector("#alertsTable tbody");
+    tbody.innerHTML = ""; // Clear table
+    markers.forEach(m => m.setMap(null)); // Clear old markers
+    markers.length = 0;
+
+    if (!alerts) return;
+
+    Object.values(alerts).forEach(alert => {
+      // Table row
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${alert.type}</td>
+        <td>${alert.lat.toFixed(6)}</td>
+        <td>${alert.lng.toFixed(6)}</td>
+        <td>${alert.battery.toFixed(2)}</td>
+      `;
+      tbody.appendChild(row);
+
+      // Map marker
+      if (alert.lat && alert.lng) {
+        const marker = new google.maps.Marker({
+          position: { lat: alert.lat, lng: alert.lng },
+          map: map,
+          title: alert.type
+        });
+        markers.push(marker);
+      }
+    });
+  }
+
+  // ===== Listen for Firebase updates =====
+  db.ref('alerts').on('value', snapshot => {
+    const alerts = snapshot.val();
+    updateAlerts(alerts);
+  });
+</script>
+
 </body>
 </html>
