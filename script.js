@@ -1,9 +1,9 @@
   // 🔹 Replace with your Firebase config
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com/",
-  projectId: "YOUR_PROJECT_ID",
+  apiKey: "AIzaSyCoSb7TW3Wgz5zzWVajpk2l8DqFKYEK-3o",
+  authDomain: "fall-dectation.firebaseapp.com",
+  databaseURL: "https://fall-dectation-default-rtdb.firebaseio.com/",
+  projectId: "fall-dectation",
 };
 firebase.initializeApp(firebaseConfig);
 
