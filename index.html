@@ -16,6 +16,8 @@
     th, td { padding: 8px 12px; border: 1px solid #ccc; text-align: center; }
     th { background: #222; color: #fff; }
     tr:nth-child(even) { background: #eaeaea; }
+    .fall { background-color: #ffcccc; }   /* Red for FALL */
+    .sos { background-color: #fff0b3; }    /* Yellow for SOS */
   </style>
 </head>
 <body>
@@ -55,7 +57,7 @@
 
   const markers = [];
 
-  // ===== Function to update table and map =====
+  // ===== Update table and map =====
   function updateAlerts(alerts) {
     const tbody = document.querySelector("#alertsTable tbody");
     tbody.innerHTML = ""; // Clear table
@@ -65,22 +67,34 @@
     if (!alerts) return;
 
     Object.values(alerts).forEach(alert => {
-      // Table row
+      const lat = parseFloat(alert.lat) || 0.0;
+      const lng = parseFloat(alert.lng) || 0.0;
+      const battery = parseFloat(alert.battery) || 0.0;
+      const type = alert.type || "Unknown";
+
+      // Table row with class based on type
       const row = document.createElement("tr");
+      row.className = type.toUpperCase() === "FALL" ? "fall" :
+                      type.toUpperCase() === "SOS" ? "sos" : "";
       row.innerHTML = `
-        <td>${alert.type}</td>
-        <td>${alert.lat.toFixed(6)}</td>
-        <td>${alert.lng.toFixed(6)}</td>
-        <td>${alert.battery.toFixed(2)}</td>
+        <td>${type}</td>
+        <td>${lat.toFixed(6)}</td>
+        <td>${lng.toFixed(6)}</td>
+        <td>${battery.toFixed(2)}</td>
       `;
       tbody.appendChild(row);
 
-      // Map marker
-      if (alert.lat && alert.lng) {
+      // Map marker with color
+      if (lat !== 0.0 && lng !== 0.0) {
+        const color = type.toUpperCase() === "FALL" ? "http://maps.google.com/mapfiles/ms/icons/red-dot.png" :
+                      type.toUpperCase() === "SOS" ? "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png" :
+                      "http://maps.google.com/mapfiles/ms/icons/blue-dot.png";
+
         const marker = new google.maps.Marker({
-          position: { lat: alert.lat, lng: alert.lng },
+          position: { lat: lat, lng: lng },
           map: map,
-          title: alert.type
+          title: type,
+          icon: color
         });
         markers.push(marker);
       }
@@ -90,10 +104,10 @@
   // ===== Listen for Firebase updates =====
   db.ref('alerts').on('value', snapshot => {
     const alerts = snapshot.val();
+    console.log(alerts);
     updateAlerts(alerts);
   });
 </script>
 
 </body>
 </html>
-
