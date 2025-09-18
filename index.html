@@ -1,78 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fall Detection Dashboard</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-7Z9ZeLKoCIn5eV6vsSIH_bKMAq80l20"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #map { height: 500px; width: 100%; margin-bottom: 20px; }
-    ul { list-style: none; padding: 0; }
-    li { padding: 5px; border-bottom: 1px solid #ccc; }
-    h2, h3 { margin: 5px 0; }
-  </style>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
 </head>
 <body>
+  <h1>🚨 Fall Detection Dashboard</h1>
 
-  <h2>Fall Detection Dashboard</h2>
-  <div id="map"></div>
-  <h3>Alerts</h3>
-  <ul id="alerts"></ul>
-  <h3>Status</h3>
-  <p id="battery">Battery: -- V</p>
-  <p id="mpu">MPU: --</p>
-  <p id="gps">GPS: --</p>
+  <div class="card">
+    <h2>Status</h2>
+    <p><b>Battery:</b> <span id="battery">Loading...</span></p>
+    <p><b>MPU:</b> <span id="mpu">Loading...</span></p>
+    <p><b>GPS:</b> <span id="gps">Loading...</span></p>
+  </div>
 
-  <script>
-    // ---------------- Firebase Config ----------------
-    const firebaseConfig = {
-      apiKey: "AIzaSyCoSb7TW3Wgz5zzWVajpk2l8DqFKYEK-3o",
-      authDomain: "fall-dectation.firebaseapp.com",
-      databaseURL: "https://fall-dectation-default-rtdb.firebaseio.com/",
-      projectId: "fall-dectation"
-    };
-    firebase.initializeApp(firebaseConfig);
+  <div class="card alert">
+    <h2>Alerts</h2>
+    <ul id="alerts"></ul>
+  </div>
 
-    const dbRefAlerts = firebase.database().ref("alerts");
-    const dbRefStatus = firebase.database().ref("status");
+  <div class="card">
+    <h2>Location</h2>
+    <iframe id="map" width="100%" height="300" style="border:0;" loading="lazy"></iframe>
+  </div>
 
-    // ---------------- Google Maps ----------------
-    var map = new google.maps.Map(document.getElementById("map"), {
-      zoom: 15,
-      center: { lat: 0, lng: 0 }
-    });
-
-    // Listen for new alerts
-    dbRefAlerts.on("child_added", function(snapshot) {
-      let value = snapshot.val();
-      document.getElementById("alerts").innerHTML += "<li>" + value + "</li>";
-
-      // Parse GPS coordinates
-      if(value.includes("Lat") && value.includes("Lng")) {
-        try {
-          let lat = parseFloat(value.split(",")[0].split(":")[1].trim());
-          let lng = parseFloat(value.split(",")[1].split(":")[1].trim());
-          let pos = { lat: lat, lng: lng };
-
-          new google.maps.Marker({ position: pos, map: map });
-          map.setCenter(pos);
-        } catch(e) {
-          console.log("Error parsing coordinates:", e);
-        }
-      }
-    });
-
-    // Listen for status updates
-    dbRefStatus.on("value", function(snapshot) {
-      const status = snapshot.val();
-      if(status) {
-        document.getElementById("battery").innerText = "Battery: " + status.battery + " V";
-        document.getElementById("mpu").innerText = "MPU: " + (status.mpu ? "✅ OK" : "❌ Fail");
-        document.getElementById("gps").innerText = "GPS: " + (status.gps ? "✅ Fix" : "❌ No Fix");
-      }
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
