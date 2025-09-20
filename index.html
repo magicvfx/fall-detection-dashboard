@@ -2,115 +2,85 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fall Detection Dashboard1</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-7Z9ZeLKoCIn5eV6vsSIH_bKMAq80l20"></script>
+  <title>Smart Fall Detection Alerts</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4; }
-    header { background: #222; color: #fff; padding: 10px 20px; text-align: center; }
-    h1 { margin: 0; font-size: 24px; }
-    #map { height: 400px; width: 100%; margin: 10px 0; }
-    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-    th, td { padding: 8px 12px; border: 1px solid #ccc; text-align: center; }
-    th { background: #222; color: #fff; }
-    tr:nth-child(even) { background: #eaeaea; }
-    .fall { background-color: #ffcccc; }   /* Red for FALL */
-    .sos { background-color: #fff0b3; }    /* Yellow for SOS */
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    #map { height: 400px; width: 100%; margin-top: 20px; border: 2px solid #444; border-radius: 10px; }
+    .info { margin: 10px 0; font-size: 16px; }
+    .alert-box { background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
+  <h1>🚨 Fall Detection Alerts</h1>
 
-<header>
-  <h1>Fall Detection Dashboard 1</h1>
-</header>
+  <div class="alert-box">
+    <div class="info">Type: <span id="type">--</span></div>
+    <div class="info">Latitude: <span id="lat">--</span></div>
+    <div class="info">Longitude: <span id="lng">--</span></div>
+    <div class="info">Battery: <span id="battery">--</span> V</div>
+  </div>
 
-<div id="map"></div>
+  <div id="map"></div>
 
-<table id="alertsTable">
-  <thead>
-    <tr>
-      <th>Type</th>
-      <th>Latitude</th>
-      <th>Longitude</th>
-      <th>Battery (V)</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-<script>
-  // ===== Firebase Configuration =====
-  const firebaseConfig = {
-    apiKey:"AIzaSyCoSb7TW3Wgz5zzWVajpk2l8DqFKYEK-3o",
-    databaseURL:"https://fall-dectation-default-rtdb.firebaseio.com/"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+  <script>
+    // 🔥 Your Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCoSb7TW3Wgz5zzWVajpk2l8DqFKYEK-3o",
+      authDomain: "fall-dectation.firebaseapp.com",
+      databaseURL: "https://fall-dectation-default-rtdb.firebaseio.com/",
+      projectId: "fall-dectation",
+      storageBucket: "fall-dectation.appspot.com",
+      messagingSenderId: "467192692594",
+      appId: "1:467192692594:web:2756ad46d7d1fbb210e7eb"
+    };
 
-  // ===== Initialize Google Map =====
-  const map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 10.0, lng: 76.0 },
-    zoom: 12
-  });
+    // Init Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-  const markers = [];
+    let map;
+    let marker;
 
-  // ===== Update table and map =====
-  function updateAlerts(alerts) {
-    const tbody = document.querySelector("#alertsTable tbody");
-    tbody.innerHTML = ""; // Clear table
-    markers.forEach(m => m.setMap(null)); // Clear old markers
-    markers.length = 0;
+    // Init Google Map
+    function initMap(lat = 0, lng = 0) {
+      const location = { lat: lat, lng: lng };
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 15,
+        center: location
+      });
+      marker = new google.maps.Marker({
+        position: location,
+        map: map,
+        title: "Elderly Person Location"
+      });
+    }
 
-    if (!alerts) return;
+    // Update Map
+    function updateMap(lat, lng) {
+      const location = { lat: lat, lng: lng };
+      map.setCenter(location);
+      marker.setPosition(location);
+    }
 
-    Object.values(alerts).forEach(alert => {
-      const lat = parseFloat(alert.lat) || 0.0;
-      const lng = parseFloat(alert.lng) || 0.0;
-      const battery = parseFloat(alert.battery) || 0.0;
-      const type = alert.type || "Unknown";
+    // Listen for new alerts
+    database.ref("/alerts").limitToLast(1).on("child_added", function(snapshot) {
+      const data = snapshot.val();
+      document.getElementById("type").innerText = data.type;
+      document.getElementById("lat").innerText = data.lat;
+      document.getElementById("lng").innerText = data.lng;
+      document.getElementById("battery").innerText = data.battery;
 
-      // Table row with class based on type
-      const row = document.createElement("tr");
-      row.className = type.toUpperCase() === "FALL" ? "fall" :
-                      type.toUpperCase() === "SOS" ? "sos" : "";
-      row.innerHTML = `
-        <td>${type}</td>
-        <td>${lat.toFixed(6)}</td>
-        <td>${lng.toFixed(6)}</td>
-        <td>${battery.toFixed(2)}</td>
-      `;
-      tbody.appendChild(row);
-
-      // Map marker with color
-      if (lat !== 0.0 && lng !== 0.0) {
-        const color = type.toUpperCase() === "FALL" ? "http://maps.google.com/mapfiles/ms/icons/red-dot.png" :
-                      type.toUpperCase() === "SOS" ? "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png" :
-                      "http://maps.google.com/mapfiles/ms/icons/blue-dot.png";
-
-        const marker = new google.maps.Marker({
-          position: { lat: lat, lng: lng },
-          map: map,
-          title: type,
-          icon: color
-        });
-        markers.push(marker);
-      }
+      updateMap(data.lat, data.lng);
     });
-  }
+  </script>
 
-  // ===== Listen for Firebase updates =====
-  db.ref('alerts').on('value', snapshot => {
-    const alerts = snapshot.val();
-    console.log(alerts);
-    updateAlerts(alerts);
-  });
-</script>
-
+  <!-- Google Maps API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-7Z9ZeLKoCIn5eV6vsSIH_bKMAq80l20&callback=initMap"
+          async defer></script>
 </body>
 </html>
-
-
-
