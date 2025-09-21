@@ -1,85 +1,116 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Smart Fall Detection Alerts</title>
+  <title>Fall Detection Alerts</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { color: #333; }
-    #map { height: 400px; width: 100%; margin-top: 20px; border: 2px solid #444; border-radius: 10px; }
-    .info { margin: 10px 0; font-size: 16px; }
-    .alert-box { background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+    body { font-family: Arial, sans-serif; background:#f9f9f9; padding:20px; }
+    h1 { text-align:center; }
+    #map {
+      width: 100%;
+      height: 500px;
+      margin-top: 20px;
+      border-radius: 8px;
+    }
+    .alert {
+      background:#fff;
+      padding:10px;
+      margin:10px 0;
+      border-radius:6px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
   <h1>🚨 Fall Detection Alerts</h1>
-
-  <div class="alert-box">
-    <div class="info">Type: <span id="type">--</span></div>
-    <div class="info">Latitude: <span id="lat">--</span></div>
-    <div class="info">Longitude: <span id="lng">--</span></div>
-    <div class="info">Battery: <span id="battery">--</span> V</div>
-  </div>
-
+  <div id="alerts"></div>
   <div id="map"></div>
 
-  <!-- Firebase -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
   <script>
-    // 🔥 Your Firebase Config
+    // 🔑 Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCoSb7TW3Wgz5zzWVajpk2l8DqFKYEK-3o",
       authDomain: "fall-dectation.firebaseapp.com",
-      databaseURL: "https://fall-dectation-default-rtdb.firebaseio.com/",
+      databaseURL: "https://fall-dectation-default-rtdb.firebaseio.com",
       projectId: "fall-dectation",
-      storageBucket: "fall-dectation.appspot.com",
+      storageBucket: "fall-dectation.firebasestorage.app",
       messagingSenderId: "467192692594",
       appId: "1:467192692594:web:2756ad46d7d1fbb210e7eb"
     };
-
-    // Init Firebase
     firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+
+    const alertsRef = firebase.database().ref("alerts");
 
     let map;
-    let marker;
+    let pathCoords = []; // Store all alert coordinates
+    let pathLine;        // Polyline object
 
-    // Init Google Map
-    function initMap(lat = 0, lng = 0) {
-      const location = { lat: lat, lng: lng };
+    function initMap() {
+      // Default center
       map = new google.maps.Map(document.getElementById("map"), {
         zoom: 15,
-        center: location
+        center: { lat: 20.5937, lng: 78.9629 } // Center on India
       });
-      marker = new google.maps.Marker({
-        position: location,
-        map: map,
-        title: "Elderly Person Location"
+
+      // Initialize empty polyline
+      pathLine = new google.maps.Polyline({
+        path: pathCoords,
+        geodesic: true,
+        strokeColor: "#FF0000",
+        strokeOpacity: 1.0,
+        strokeWeight: 3,
+        map: map
+      });
+
+      // Listen for new alerts
+      alertsRef.on("child_added", snap => {
+        const data = snap.val();
+        const lat = parseFloat(data.lat);
+        const lng = parseFloat(data.lng);
+
+        if (isNaN(lat) || isNaN(lng)) return; // skip invalid coords
+
+        // Add alert info in list
+        const container = document.createElement("div");
+        container.className = "alert";
+        container.innerHTML = `
+          <b>${data.type}</b><br>
+          📍 Lat: ${lat}, Lng: ${lng}<br>
+          🔋 Battery: ${parseFloat(data.battery).toFixed(2)} V<br>
+          🕒 ${data.date || new Date(data.timestamp).toLocaleString()}
+        `;
+        document.getElementById("alerts").prepend(container);
+
+        // Add marker
+        const marker = new google.maps.Marker({
+          position: { lat, lng },
+          map: map,
+          title: data.type
+        });
+
+        // Info window
+        const info = new google.maps.InfoWindow({
+          content: `<b>${data.type}</b><br>Lat: ${lat}, Lng: ${lng}`
+        });
+        marker.addListener("click", () => {
+          info.open(map, marker);
+        });
+
+        // Add point to path
+        pathCoords.push({ lat, lng });
+        pathLine.setPath(pathCoords);
+
+        // Re-center map on latest alert
+        map.setCenter({ lat, lng });
       });
     }
-
-    // Update Map
-    function updateMap(lat, lng) {
-      const location = { lat: lat, lng: lng };
-      map.setCenter(location);
-      marker.setPosition(location);
-    }
-
-    // Listen for new alerts
-    database.ref("/alerts").limitToLast(1).on("child_added", function(snapshot) {
-      const data = snapshot.val();
-      document.getElementById("type").innerText = data.type;
-      document.getElementById("lat").innerText = data.lat;
-      document.getElementById("lng").innerText = data.lng;
-      document.getElementById("battery").innerText = data.battery;
-
-      updateMap(data.lat, data.lng);
-    });
   </script>
 
-  <!-- Google Maps API -->
+  <!-- Google Maps JS API -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-7Z9ZeLKoCIn5eV6vsSIH_bKMAq80l20&callback=initMap"
           async defer></script>
 </body>
