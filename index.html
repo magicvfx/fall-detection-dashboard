@@ -1,117 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
   <title>Fall Detection Alerts</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
   <style>
-    body { font-family: Arial, sans-serif; background:#f9f9f9; padding:20px; }
-    h1 { text-align:center; }
-    #map {
-      width: 100%;
-      height: 500px;
-      margin-top: 20px;
-      border-radius: 8px;
-    }
-    .alert {
-      background:#fff;
-      padding:10px;
-      margin:10px 0;
-      border-radius:6px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.1);
-    }
+    #map { height: 500px; width: 100%; }
   </style>
 </head>
 <body>
-  <h1>🚨 Fall Detection Alerts</h1>
-  <div id="alerts"></div>
+  <h2>Fall & SOS Alerts</h2>
   <div id="map"></div>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <div id="info"></div>
 
   <script>
-    // 🔑 Firebase config
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCoSb7TW3Wgz5zzWVajpk2l8DqFKYEK-3o",
-      authDomain: "fall-dectation.firebaseapp.com",
-      databaseURL: "https://fall-dectation-default-rtdb.firebaseio.com",
-      projectId: "fall-dectation",
-      storageBucket: "fall-dectation.firebasestorage.app",
-      messagingSenderId: "467192692594",
-      appId: "1:467192692594:web:2756ad46d7d1fbb210e7eb"
+      databaseURL: "https://fall-dectation-default-rtdb.firebaseio.com/"
     };
-    firebase.initializeApp(firebaseConfig);
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database(app);
 
-    const alertsRef = firebase.database().ref("alerts");
-
-    let map;
-    let pathCoords = []; // Store all alert coordinates
-    let pathLine;        // Polyline object
+    let map, marker;
 
     function initMap() {
-      // Default center
       map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 15,
-        center: { lat: 20.5937, lng: 78.9629 } // Center on India
+        center: { lat: 11.247083, lng: 75.952417 },
+        zoom: 15
       });
-
-      // Initialize empty polyline
-      pathLine = new google.maps.Polyline({
-        path: pathCoords,
-        geodesic: true,
-        strokeColor: "#FF0000",
-        strokeOpacity: 1.0,
-        strokeWeight: 3,
-        map: map
-      });
-
-      // Listen for new alerts
-      alertsRef.on("child_added", snap => {
+      marker = new google.maps.Marker({ map: map });
+      
+      db.ref("alerts").limitToLast(1).on("child_added", snap => {
         const data = snap.val();
-        const lat = parseFloat(data.lat);
-        const lng = parseFloat(data.lng);
-
-        if (isNaN(lat) || isNaN(lng)) return; // skip invalid coords
-
-        // Add alert info in list
-        const container = document.createElement("div");
-        container.className = "alert";
-        container.innerHTML = `
-          <b>${data.type}</b><br>
-          📍 Lat: ${lat}, Lng: ${lng}<br>
-          🔋 Battery: ${parseFloat(data.battery).toFixed(2)} V<br>
-          🕒 ${data.date || new Date(data.timestamp).toLocaleString()}
+        const pos = { lat: data.lat, lng: data.lng };
+        marker.setPosition(pos);
+        map.setCenter(pos);
+        document.getElementById("info").innerHTML = `
+          <b>Type:</b> ${data.type}<br>
+          <b>Lat:</b> ${data.lat}<br>
+          <b>Lng:</b> ${data.lng}<br>
+          <b>Battery:</b> ${data.battery}V<br>
+          <b>Time:</b> ${data.time}
         `;
-        document.getElementById("alerts").prepend(container);
-
-        // Add marker
-        const marker = new google.maps.Marker({
-          position: { lat, lng },
-          map: map,
-          title: data.type
-        });
-
-        // Info window
-        const info = new google.maps.InfoWindow({
-          content: `<b>${data.type}</b><br>Lat: ${lat}, Lng: ${lng}`
-        });
-        marker.addListener("click", () => {
-          info.open(map, marker);
-        });
-
-        // Add point to path
-        pathCoords.push({ lat, lng });
-        pathLine.setPath(pathCoords);
-
-        // Re-center map on latest alert
-        map.setCenter({ lat, lng });
       });
     }
   </script>
-
-  <!-- Google Maps JS API -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-7Z9ZeLKoCIn5eV6vsSIH_bKMAq80l20&callback=initMap"
-          async defer></script>
 </body>
 </html>
