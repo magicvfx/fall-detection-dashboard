@@ -87,7 +87,7 @@
     }
 
     // Get FCM token
-    messaging.getToken({ vapidKey: "YOUR_PUBLIC_VAPID_KEY" }).then((currentToken) => {
+    messaging.getToken({ vapidKey: "BP4bj_O1elFfLdvMRkaSTdAkdMu0I3K90WincKaNW-N6WSYIC5gWIUdWHKH_Tn1ER4UMbiaitgiI_6RxGOPmj4k" }).then((currentToken) => {
       if (currentToken) {
         console.log("FCM Token:", currentToken);
         // Use this token in Cloud Function to send notifications
@@ -109,3 +109,4 @@
   </script>
 </body>
 </html>
+
