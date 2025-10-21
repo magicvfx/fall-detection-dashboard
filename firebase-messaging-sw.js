@@ -14,9 +14,20 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // Background notifications
-messaging.onBackgroundMessage(function(payload) {
-  self.registration.showNotification(payload.notification.title, {
-    body: payload.notification.body,
-    icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png"
-  });
+messaging.onBackgroundMessage(payload => {
+  console.log("Background message received:", payload);
+
+  // Determine icon based on alert type
+  let alertType = payload.data?.type || "Fall"; // fallback to Fall
+  let iconUrl = alertType.toLowerCase() === "sos"
+                ? "https://cdn-icons-png.flaticon.com/512/564/564619.png"
+                : "https://cdn-icons-png.flaticon.com/512/565/565547.png";
+
+  const notificationTitle = `${alertType} Alert!`;
+  const notificationOptions = {
+    body: `Lat: ${payload.data.lat}, Lng: ${payload.data.lng}\nBattery: ${parseFloat(payload.data.battery).toFixed(2)} V`,
+    icon: iconUrl
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
