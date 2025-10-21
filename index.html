@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>🚨 Fall Detection Alerts</title>
+  <title>🚨 Fall & SOS Alerts</title>
   <style>
     body { font-family: Arial, sans-serif; background:#f9f9f9; padding:20px; }
     h1 { text-align:center; }
@@ -14,6 +14,8 @@
       box-shadow:0 2px 6px rgba(0,0,0,0.1);
     }
     .type { font-weight:bold; font-size:18px; }
+    .fall { color: red; }
+    .sos { color: orange; }
     .map {
       width:100%;
       height:250px;
@@ -24,7 +26,7 @@
   </style>
 </head>
 <body>
-  <h1>🚨 Fall Detection Alerts</h1>
+  <h1>🚨 Fall Detection & SOS Alerts</h1>
   <div id="alerts"></div>
 
   <!-- Firebase SDKs -->
@@ -33,7 +35,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
 
   <script>
-    // 🔑 Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCoSb7TW3Wgz5zzWVajpk2l8DqFKYEK-3o",
       authDomain: "fall-dectation.firebaseapp.com",
@@ -55,7 +56,7 @@
       });
     }
 
-    // Listen for new alerts in real-time
+    // Listen for new alerts
     alertsRef.on("child_added", snap => {
       const data = snap.val();
       displayAlert(data);
@@ -66,7 +67,10 @@
     function displayAlert(data) {
       const container = document.createElement("div");
       container.className = "alert";
-      
+
+      // Color by type
+      let typeClass = data.type.toLowerCase() === "sos" ? "sos" : "fall";
+
       const mapFrame = `
         <div class="map">
           <iframe 
@@ -78,7 +82,7 @@
       `;
 
       container.innerHTML = `
-        <div class="type">⚡ ${data.type}</div>
+        <div class="type ${typeClass}">⚡ ${data.type}</div>
         <div>📍 Lat: ${data.lat}, Lng: ${data.lng}</div>
         <div>🔋 Battery: ${parseFloat(data.battery).toFixed(2)} V</div>
         <div>🕒 ${data.time || "No time available"}</div>
@@ -88,25 +92,28 @@
       document.getElementById("alerts").prepend(container);
     }
 
-    // Trigger browser notification (foreground)
+    // Trigger browser notification
     function triggerNotification(data) {
       if (Notification.permission === "granted") {
-        new Notification("⚠️ Fall Alert!", {
-          body: `Type: ${data.type}\nLat: ${data.lat}, Lng: ${data.lng}`,
-          icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png"
+        let iconUrl = data.type.toLowerCase() === "sos" 
+                      ? "https://cdn-icons-png.flaticon.com/512/564/564619.png"
+                      : "https://cdn-icons-png.flaticon.com/512/565/565547.png";
+
+        new Notification(`${data.type} Alert!`, {
+          body: `Lat: ${data.lat}, Lng: ${data.lng}\nBattery: ${parseFloat(data.battery).toFixed(2)} V`,
+          icon: iconUrl
         });
       }
     }
 
-    // Get FCM token for background notifications
+    // FCM token for background notifications
     messaging.getToken({ 
       vapidKey: "BP4bj_O1elFfLdvMRkaSTdAkdMu0I3K90WincKaNW-N6WSYIC5gWIUdWHKH_Tn1ER4UMbiaitgiI_6RxGOPmj4k" 
     }).then(token => {
       if(token) console.log("FCM Token:", token);
-      // Use this token in Cloud Functions to send automatic push notifications
     }).catch(err => console.error("FCM token error:", err));
 
-    // Handle messages while page is in foreground
+    // Handle foreground messages
     messaging.onMessage(payload => {
       console.log("Foreground message received:", payload);
       new Notification(payload.notification.title, {
