@@ -48,21 +48,19 @@
     const alertsRef = firebase.database().ref("alerts");
     const messaging = firebase.messaging();
 
-    // Request notification permission
+    // Request browser notification permission
     if (Notification.permission !== "granted") {
       Notification.requestPermission().then(permission => {
         console.log("Notification permission:", permission);
       });
     }
 
-    // Listen for new alerts
+    // Display alerts on dashboard
     alertsRef.on("child_added", snap => {
       const data = snap.val();
       displayAlert(data);
-      triggerNotification(data);
     });
 
-    // Display alert on dashboard
     function displayAlert(data) {
       const container = document.createElement("div");
       container.className = "alert";
@@ -88,20 +86,26 @@
       document.getElementById("alerts").prepend(container);
     }
 
-    // Trigger browser notification
-    function triggerNotification(data) {
-      if (Notification.permission === "granted") {
-        new Notification("⚠️ Fall Alert!", {
-          body: `Type: ${data.type}\nLat: ${data.lat}, Lng: ${data.lng}`,
-          icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png"
-        });
+    // Get FCM token
+    messaging.getToken({ vapidKey: "YOUR_PUBLIC_VAPID_KEY" }).then((currentToken) => {
+      if (currentToken) {
+        console.log("FCM Token:", currentToken);
+        // Use this token in Cloud Function to send notifications
+      } else {
+        console.log('No registration token available.');
       }
-    }
+    }).catch((err) => {
+      console.error('Error retrieving FCM token', err);
+    });
 
-    // Optional: Get FCM token (for push notifications via Firebase)
-    messaging.getToken({ vapidKey: "YOUR_PUBLIC_VAPID_KEY" }).then((token) => {
-      if (token) console.log("FCM Token:", token);
-    }).catch(err => console.error("FCM Error:", err));
+    // Handle messages while page is open
+    messaging.onMessage((payload) => {
+      console.log("Message received:", payload);
+      new Notification(payload.notification.title, {
+        body: payload.notification.body,
+        icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png"
+      });
+    });
   </script>
 </body>
 </html>
