@@ -27,9 +27,10 @@
   <h1>🚨 Fall Detection Alerts</h1>
   <div id="alerts"></div>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
 
   <script>
     // 🔑 Firebase config
@@ -45,13 +46,27 @@
     firebase.initializeApp(firebaseConfig);
 
     const alertsRef = firebase.database().ref("alerts");
+    const messaging = firebase.messaging();
 
+    // Request notification permission
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission().then(permission => {
+        console.log("Notification permission:", permission);
+      });
+    }
+
+    // Listen for new alerts
     alertsRef.on("child_added", snap => {
       const data = snap.val();
+      displayAlert(data);
+      triggerNotification(data);
+    });
+
+    // Display alert on dashboard
+    function displayAlert(data) {
       const container = document.createElement("div");
       container.className = "alert";
       
-      // Google Maps iframe
       const mapFrame = `
         <div class="map">
           <iframe 
@@ -71,7 +86,22 @@
       `;
       
       document.getElementById("alerts").prepend(container);
-    });
+    }
+
+    // Trigger browser notification
+    function triggerNotification(data) {
+      if (Notification.permission === "granted") {
+        new Notification("⚠️ Fall Alert!", {
+          body: `Type: ${data.type}\nLat: ${data.lat}, Lng: ${data.lng}`,
+          icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png"
+        });
+      }
+    }
+
+    // Optional: Get FCM token (for push notifications via Firebase)
+    messaging.getToken({ vapidKey: "YOUR_PUBLIC_VAPID_KEY" }).then((token) => {
+      if (token) console.log("FCM Token:", token);
+    }).catch(err => console.error("FCM Error:", err));
   </script>
 </body>
 </html>
