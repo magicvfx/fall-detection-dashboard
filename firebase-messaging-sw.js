@@ -1,0 +1,21 @@
+importScripts('https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyCoSb7TW3Wgz5zzWVajpk2l8DqFKYEK-3o",
+  authDomain: "fall-dectation.firebaseapp.com",
+  databaseURL: "https://fall-dectation-default-rtdb.firebaseio.com",
+  projectId: "fall-dectation",
+  storageBucket: "fall-dectation.firebasestorage.app",
+  messagingSenderId: "467192692594",
+  appId: "1:467192692594:web:2756ad46d7d1fbb210e7eb"
+});
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage(function(payload) {
+  self.registration.showNotification(payload.notification.title, {
+    body: payload.notification.body,
+    icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png"
+  });
+});
