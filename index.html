@@ -84,7 +84,7 @@
       container.innerHTML = `
         <div class="type ${typeClass}">⚡ ${data.type}</div>
         <div>📍 Lat: ${data.lat}, Lng: ${data.lng}</div>
-        <div>🔋 Battery: ${parseFloat(data.battery).toFixed(2)} V</div>
+        <div>🔋 Battery: ${parseFloat(data.battery).toFixed(2)} %</div>
         <div>🕒 ${data.time || "No time available"}</div>
         ${mapFrame}
       `;
@@ -124,3 +124,4 @@
   </script>
 </body>
 </html>
+
